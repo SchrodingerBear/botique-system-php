@@ -71,6 +71,7 @@ require_once('auth_v2.php');
                 <button type="submit" class="btn btn-info pull-right"
                     style="background-color: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Login</button>
             </div>
+            <a href="register.php">Register</a>
         </form>
     </div>
 </body>
