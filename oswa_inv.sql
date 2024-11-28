@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Oct 12, 2024 at 05:53 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- Host: localhost:3306
+-- Generation Time: Nov 28, 2024 at 09:24 AM
+-- Server version: 10.4.33-MariaDB-log
+-- PHP Version: 7.4.33
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -38,20 +38,6 @@ CREATE TABLE `cart` (
   `userName` text NOT NULL,
   `user_id` int(250) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `cart`
---
-
-INSERT INTO `cart` (`id`, `image_id`, `name`, `price`, `color`, `size`, `quantity`, `userName`, `user_id`) VALUES
-(4, 2, 'Lalaki Damit', 269, 'Violet', '0', 5, 'Jester', 0),
-(5, 2, 'Lalaki Damit', 269, 'Blue', '0', 1, 'Jester', 0),
-(6, 2, 'Lalaki Damit', 269, 'Blue', 'L', 11, 'Default User', 3),
-(7, 6, 'Babae Relo', 222, '', '', 1, 'Jester', 0),
-(8, 2, 'Lalaki Damit', 269, 'Blue', 'L', 1, '3', 0),
-(9, 2, 'Lalaki Damit', 100, 'Violet', 'L', 6, 'Default User', 3),
-(10, 9, 'Test1', 58, 'Black', 'M', 10, ' Admin User', 1),
-(11, 10, '', 60, 'Red', 'Choose an option', 3, ' Admin User', 1);
 
 -- --------------------------------------------------------
 
@@ -150,8 +136,8 @@ CREATE TABLE `products` (
 --
 
 INSERT INTO `products` (`id`, `name`, `quantity`, `buy_price`, `sale_price`, `category`, `category_name`, `categorie_id`, `media_id`, `date`, `size`, `sex`, `color`) VALUES
-(21, 'Lalaki Damit', '100', 100.00, 269.00, 'CLOTHES', 'Men', 5, 2, '2024-10-10 13:07:27', 'S', 'Male', 'Violet'),
-(22, 'Women Dress', '100', 1.00, 199.00, 'CLOTHES', 'Women', 4, 3, '2024-10-10 13:07:48', 'XL', 'Female', ''),
+(21, 'Lalaki Damit', '4', 100.00, 269.00, 'CLOTHES', 'Men', 5, 2, '2024-10-10 13:07:27', 'Large', 'Male', 'Violets'),
+(22, 'Women Dress', '90', 1.00, 199.00, 'CLOTHES', 'Women', 4, 3, '2024-10-10 13:07:48', 'XL', 'Female', 'Black'),
 (23, 'Watch Lalaki', '1', 12.00, 1111.00, 'ACCESSORIES', 'Watches', 7, 8, '2024-10-10 13:08:13', '', 'Male', ''),
 (24, 'Babae Relo', '12', 12.00, 222.00, 'ACCESSORIES', 'Watches', 7, 6, '2024-10-10 13:08:42', '', 'Female', ''),
 (25, 'Shoe', '1', 133.00, 1444.00, 'SHOES', 'Shoes', 6, 4, '2024-10-10 13:09:03', '16', 'Male', ''),
@@ -170,11 +156,23 @@ INSERT INTO `products` (`id`, `name`, `quantity`, `buy_price`, `sale_price`, `ca
 
 CREATE TABLE `sales` (
   `id` int(11) UNSIGNED NOT NULL,
+  `userid` int(11) UNSIGNED NOT NULL,
   `product_id` int(11) UNSIGNED NOT NULL,
   `qty` int(11) NOT NULL,
   `price` decimal(25,2) NOT NULL,
-  `date` date NOT NULL
+  `date` date NOT NULL DEFAULT current_timestamp(),
+  `variation` varchar(255) NOT NULL,
+  `status` int(11) NOT NULL DEFAULT 0,
+  `receipt` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+--
+-- Dumping data for table `sales`
+--
+
+INSERT INTO `sales` (`id`, `userid`, `product_id`, `qty`, `price`, `date`, `variation`, `status`, `receipt`) VALUES
+(1, 3, 21, 1, 269.00, '2024-11-24', 'Violets,Large', 1, '../uploads/receipt/462550088_3784807838436270_339172176739918521_n.jpg'),
+(2, 3, 22, 1, 199.00, '2024-11-24', 'Black,XL', 1, '../uploads/receipt/462550088_3784807838436270_339172176739918521_n.jpg');
 
 -- --------------------------------------------------------
 
@@ -198,9 +196,10 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `username`, `password`, `user_level`, `image`, `status`, `last_login`) VALUES
-(1, ' Admin User', 'admin', 'd033e22ae348aeb5660fc2140aec35850c4da997', 1, 'no_image.jpg', 1, '2024-10-12 17:39:33'),
-(2, 'Special User', 'special', 'ba36b97a41e7faf742ab09bf88405ac04f99599a', 2, 'no_image.jpg', 1, '2015-09-27 21:59:59'),
-(3, 'Default User', 'user', '12dea96fec20593566ab75692c9949596833adc9', 3, 'no_image.jpg', 1, '2024-10-12 17:38:47');
+(1, ' Admin User', 'admin', 'd033e22ae348aeb5660fc2140aec35850c4da997', 1, 'ac8fi0b41.png', 1, '2024-11-24 04:25:55'),
+(2, 'Special User', 'special', 'ba36b97a41e7faf742ab09bf88405ac04f99599a', 2, 'no_image.jpg', 0, '2015-09-27 21:59:59'),
+(3, 'Default Users', 'user', '12dea96fec20593566ab75692c9949596833adc9', 3, 'no_image.jpg', 0, '2024-11-24 04:17:41'),
+(5, 'seancvpugosa@gmail.com', 'seancvpugosa@gmail.com', '627b55302f1b705d2483ba086911e00c7e248412', 3, 'no_image.jpg', 1, '2024-11-24 04:39:28');
 
 -- --------------------------------------------------------
 
@@ -291,7 +290,7 @@ ALTER TABLE `user_groups`
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -321,13 +320,13 @@ ALTER TABLE `products`
 -- AUTO_INCREMENT for table `sales`
 --
 ALTER TABLE `sales`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `user_groups`
