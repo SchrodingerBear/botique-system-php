@@ -332,87 +332,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     <section class="bg0 p-t-104 p-b-116">
-        <div style="margin: 0 15px;">
-            <div class="flex-w flex-tr">
-                <div class="size-210  p-lr-70 p-t-55 p-b-70 p-lr-15-lg w-full">
-                    <form method="post" enctype="multipart/form-data" action="profile.php" class="clearfix">
-                        <input hidden name="id" value="<?= htmlspecialchars(trim(string: $user['id'])) ?>">
-                        <div class="bor8 m-b-20">
-                            <input class="stext-111 cl2 plh3 size-116 p-l-28 p-r-30" type="text" name="name"
-                                placeholder="Name" value="<?= htmlspecialchars(trim($user['name'])) ?>" required>
-                        </div>
+        <div class="center-content" style="margin: 50px">
+            <!-- Form Container -->
+            <h1>Edit Profile</h1>
+            <br>
+            <div class="form-container">
+                <form method="post" enctype="multipart/form-data" action="profile.php" class="clearfix">
+                    <input hidden name="id" value="<?= htmlspecialchars(trim($user['id'])) ?>">
+                    <div class="bor8 m-b-20">
+                        <input class="stext-111 cl2 plh3 size-116 p-l-28 p-r-30" type="text" name="name"
+                            placeholder="Name" value="<?= htmlspecialchars(trim($user['name'])) ?>" required>
+                    </div>
+                    <div class="bor8 m-b-20">
+                        <input class="stext-111 cl2 plh3 size-116 p-l-28 p-r-30" type="text" name="username"
+                            placeholder="Username" value="<?= htmlspecialchars($user['username']) ?>" required>
+                    </div>
+                    <div class="bor8 m-b-20">
+                        <input class="stext-111 cl2 plh3 size-116 p-l-28 p-r-30" type="password" name="password"
+                            placeholder="Password" required>
+                    </div>
+                    <button type="submit"
+                        class="flex-c-m stext-101 cl0 size-121 bg3 bor1 hov-btn3 p-lr-15 trans-04 pointer">
+                        Update
+                    </button>
+                </form>
+            </div>
 
-                        <!-- Username Field -->
-                        <div class="bor8 m-b-20">
-                            <input class="stext-111 cl2 plh3 size-116 p-l-28 p-r-30" type="text" name="username"
-                                placeholder="Username" value="<?= htmlspecialchars($user['username']) ?>" required>
-                        </div>
-
-                        <!-- Password Field (Empty) -->
-                        <div class="bor8 m-b-20">
-                            <input class="stext-111 cl2 plh3 size-116 p-l-28 p-r-30" type="password" name="password"
-                                placeholder="Password" required>
-                        </div>
-
-                        <!-- Submit Button -->
-                        <button type="submit"
-                            class="flex-c-m stext-101 cl0 size-121 bg3 bor1 hov-btn3 p-lr-15 trans-04 pointer">
-                            Update
-                        </button>
-                    </form>
-                </div>
-
-
-                <div style="margin-left: 2%;">
-                    <table class="table table-bordered  table-responsive" id="table">
-                        <thead>
-                            <tr>
-                                <th class="text-center" style="width: 50px;">#</th>
-                                <th>Product Name</th>
-                                <th class="text-center" style="width: 15%;">Variation</th>
-                                <th class="text-center" style="width: 15%;">Quantity</th>
-                                <th class="text-center" style="width: 15%;">Total</th>
-                                <th class="text-center" style="width: 15%;">Date</th>
-                                <th class="text-center" style="width: 15%;">Status</th>
-                                <th class="text-center" style="width: 15%;">Receipt</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            foreach ($orders as $index => $order) {
-                                $variation = $order['variation']; // Map variation
-                                $total = number_format($order['qty'] * $order['price'], 2); // Calculate total
-                                echo "<tr>
-        <td class='text-center'>" . ($index + 1) . "</td>
-        <td>{$order['product_name']}</td>
-        <td class='text-center'>{$variation}</td>
-        <td class='text-center'>{$order['qty']}</td>
-        <td class='text-center'>₱{$total}</td>
-        <td class='text-center'>{$order['date']}</td>
-        <td class='text-center'>" . ($order["status"] == 1 ? 'Approve' : 'Pending') . "</td>
-        <td class='text-center'><img style='width: 250px; height: 250px' src='" . $order['receipt'] . "'></td>
-    </tr>";
-                            }
-                            ?>
-
-                        </tbody>
-
-                </div>
+            <br>
+            <br>
+            <h1>Orders</h1>
+            <hr>
+            <!-- Table Container -->
+            <div class="table-container" style="overflow-x: auto; overflow-y: auto; max-height: 400px;">
+                <table class="table table-bordered table-responsive" id="table">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 50px;">#</th>
+                            <th>Product Name</th>
+                            <th class="text-center">Variation</th>
+                            <th class="text-center">Quantity</th>
+                            <th class="text-center">Total</th>
+                            <th class="text-center">Date</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Delivery Address</th>
+                            <th class="text-center">Delivery Type</th>
+                            <th class="text-center">Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        foreach ($orders as $index => $order) {
+                            $variation = $order['variation'];
+                            $total = number_format($order['qty'] * $order['price'], 2);
+                            $receiptDisplay = $order['type'] == 1
+                                ? "<img style='width: 250px; height: 250px' src='{$order['receipt']}' alt='Receipt'>"
+                                : "Receipt not available";
+                            echo "<tr>
+                        <td class='text-center'>" . ($index + 1) . "</td>
+                        <td>{$order['product_name']}</td>
+                        <td class='text-center'>{$variation}</td>
+                        <td class='text-center'>{$order['qty']}</td>
+                        <td class='text-center'>₱{$total}</td>
+                        <td class='text-center'>{$order['date']}</td>
+                        <td class='text-center'>" . ($order['status'] == 1 ? 'Approve' : 'Pending') . "</td>
+                        <td class='text-center'>{$order['address']}</td>
+                        <td class='text-center'>" . ($order['type'] == 1 ? 'Online Payment' : 'COD') . "</td>
+                        <td class='text-center'>{$receiptDisplay}</td>
+                    </tr>";
+                        }
+                        ?>
+                    </tbody>
                 </table>
-                <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-                <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
-                <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-                <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
-                <script>
-                    $(document).ready(function () {
-                        $("#table").DataTable();
-                    });
-                </script>
             </div>
         </div>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+        <script>
+            $(document).ready(function () {
+                $("#table").DataTable();
+            });
+        </script>
     </section>
-
-
 
 
 

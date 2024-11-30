@@ -21,27 +21,29 @@ if (empty($cartData)) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$coupon = $_POST['coupon'] ?? ''; // coupon code, if any
+	$address = $_POST['address'] ?? ''; // Customer address
+	$delivery_type = $_POST['delivery_type'] ?? ''; // Delivery type (0 for COD, 1 for Online Payment)
+	$receipt_path = ''; // Default value if no receipt is uploaded
 
-	$receipt_path = ''; // Default value in case no receipt is uploaded
+	// Handle receipt image upload only if delivery_type is 1 (Online Payment)
+	if ($delivery_type == '1') {
+		if (isset($_FILES['receipt'])) {
+			$receipt = $_FILES['receipt'];
+			if ($receipt['error'] === UPLOAD_ERR_OK) {
+				$upload_dir = '../uploads/receipt/';
+				$upload_file = $upload_dir . basename($receipt['name']);
 
-	// Handle receipt image upload
-	if (isset($_FILES['receipt'])) {
-		$receipt = $_FILES['receipt'];
-		if ($receipt['error'] === UPLOAD_ERR_OK) {
-			$upload_dir = '../uploads/receipt/';
-			$upload_file = $upload_dir . basename($receipt['name']);
-
-			// Move the uploaded file to the target directory
-			if (move_uploaded_file($receipt['tmp_name'], $upload_file)) {
-				$receipt_path = $upload_file; // Store the file path
+				// Move the uploaded file to the target directory
+				if (move_uploaded_file($receipt['tmp_name'], $upload_file)) {
+					$receipt_path = $upload_file; // Store the file path
+				} else {
+					echo 'Error uploading receipt image.<br>';
+				}
 			} else {
 				echo 'Error uploading receipt image.<br>';
 			}
-		} else {
-			echo 'Error uploading receipt image.<br>';
 		}
 	}
-
 
 	// Insert cart items into the sales table
 	foreach ($cartData as $prod) {
@@ -49,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$price = $prod['price'];
 		$color = $prod['color'];
 		$size = $prod['size'];
-		$variation = $color . ',' . $size; // assuming color and size
-		$date = date('Y-m-d H:i:s'); // current timestamp
+		$variation = $color . ',' . $size; // Combining color and size for variation
+		$date = date('Y-m-d H:i:s'); // Current timestamp
 
 		// Debugging: Log each cart item details
 		echo "Processing product: " . $prod['name'] . " with quantity: {$quantity}, price: {$price}, color: {$color}, size: {$size}<br>";
@@ -70,14 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 			$product = $result->fetch_assoc();
 			$product_id = $product['id'];
 
-			// Insert into sales table, including the receipt path
+			// Insert into sales table with address, delivery_type, and receipt path
 			$sql = "
-                INSERT INTO sales (userid, product_id, qty, price, variation, date, receipt)
-                VALUES ({$_SESSION['user_id']}, {$product_id}, {$quantity}, {$price}, '{$variation}', '{$date}', '{$receipt_path}')
+                INSERT INTO sales (userid, product_id, qty, price, variation, date, receipt, address, type)
+                VALUES ({$_SESSION['user_id']}, {$product_id}, {$quantity}, {$price}, '{$variation}', '{$date}', '{$receipt_path}', '{$address}', '{$delivery_type}')
             ";
 
 			if ($db->query($sql)) {
-				// Debugging: Log success for each insert
 				echo "Successfully inserted into sales for " . $prod['name'] . "<br>";
 
 				// Update the product quantity in the products table
@@ -90,7 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ";
 
 				if ($db->query($sql_update_product)) {
-					// Debugging: Log successful product quantity update
 					echo "Product quantity updated successfully for " . $prod['name'] . "<br>";
 				} else {
 					echo "Error updating product quantity for " . $prod['name'] . "<br>";
@@ -103,11 +103,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		}
 	}
 
-	// Clear cart after processing the order
 	$sql_clear_cart = "
-        DELETE FROM cart 
-        WHERE user_id = {$_SESSION['user_id']}
-    ";
+	    DELETE FROM cart 
+	    WHERE user_id = {$_SESSION['user_id']}
+	";
 
 	if ($db->query($sql_clear_cart)) {
 		header('Location: profile.php');
@@ -534,20 +533,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 						</div>
 					</div>
 				</div>
-
 				<div class="col-sm-10 col-lg-7 col-xl-5 m-lr-auto m-b-50">
 					<div class="bor10 p-lr-40 p-t-30 p-b-40 m-l-63 m-r-40 m-lr-0-xl p-lr-15-sm">
-						<h4 class="mtext-109 cl2 p-b-30">
-							Cart Totals
-						</h4>
-
+						<h4 class="mtext-109 cl2 p-b-30">Cart Totals</h4>
 						<div class="flex-w flex-t bor12 p-b-13">
 							<div class="size-208">
 								<span class="stext-110 cl2">Subtotal:</span>
 							</div>
-
 							<div class="size-209">
-								<span class="mtext-110 cl2 ">₱<span class="maintotal">0</span>.00</span>
+								<span class="mtext-110 cl2">₱<span class="maintotal">0</span>.00</span>
 							</div>
 						</div>
 
@@ -555,19 +549,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 							<div class="size-208">
 								<span class="mtext-101 cl2">Total:</span>
 							</div>
-
 							<div class="size-209 p-t-1">
 								₱<span class="mtext-110 cl2 checkouttext"><?php echo $totalPrice1 ?></span>.00
 							</div>
 						</div>
 
-						<div class="flex-w flex-c m-b-15">
-							<label for="receipt" class="stext-110 cl2">Upload Receipt:</label>
-							<input required type="file" name="receipt" id="receipt"
-								class="stext-104 cl2 bor13 p-lr-20 m-tb-5">
+						<!-- Address Input -->
+						<div class="m-b-15">
+							<label for="address" class="stext-110 cl2">Delivery Address:</label>
+							<textarea name="address" id="address" class="size-110 cl2 bor13 p-lr-20 m-tb-5"
+								required></textarea>
 						</div>
 
-						<button class="flex-c-m stext-101 cl0 size-116 bg3 bor14 hov-btn3 p-lr-15 trans-04 pointer">
+						<div class="m-b-15">
+							<label class="stext-110 cl2">Delivery Type:</label>
+							<select name="delivery_type" id="delivery_type" class="size-117 cl2 bor13 p-lr-20 m-tb-5"
+								required>
+								<option value="1">Online Payment</option>
+								<option value="0">Cash on Delivery</option>
+							</select>
+						</div>
+
+						<!-- Upload Receipt -->
+						<div id="receipt-section" class="flex-w flex-c m-b-15">
+							<label for="receipt" class="stext-110 cl2">Upload Receipt:</label>
+							<input type="file" name="receipt" id="receipt" class="stext-104 cl2 bor13 p-lr-20 m-tb-5">
+						</div>
+
+
+
+						<button type="submit"
+							class="flex-c-m stext-101 cl0 size-116 bg3 bor14 hov-btn3 p-lr-15 trans-04 pointer">
 							Proceed to Checkout
 						</button>
 					</div>
@@ -576,7 +588,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		</div>
 	</form>
 
+	<script>
+		const deliveryTypeSelect = document.getElementById('delivery_type');
+		const receiptSection = document.getElementById('receipt-section');
 
+		deliveryTypeSelect.addEventListener('change', function () {
+			if (this.value === '0') { // COD selected
+				receiptSection.style.display = 'none';
+			} else { // Online payment selected
+				receiptSection.style.display = 'flex';
+			}
+		});
+	</script>
 
 
 
