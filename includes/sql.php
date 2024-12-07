@@ -214,15 +214,27 @@ function page_require_level($require_level)
 function join_product_table()
 {
   global $db;
-  $sql = " SELECT p.color,p.id,p.name,p.quantity,p.buy_price,p.sale_price,p.category_name,p.size,p.media_id,p.date,c.name";
-  $sql .= " AS categorie,m.file_name AS image";
+  $sql = " SELECT p.color, p.id, p.media_id, p.name, p.quantity, p.buy_price, p.sale_price, p.category_name, p.size, p.date, c.name AS categorie";
   $sql .= " FROM products p";
   $sql .= " LEFT JOIN categories c ON c.id = p.categorie_id";
-  $sql .= " LEFT JOIN media m ON m.id = p.media_id";
   $sql .= " ORDER BY p.id ASC";
   return find_by_sql($sql);
-
 }
+
+function fetch_variations()
+{
+  global $db;
+  $sql = "SELECT * FROM variation ORDER BY id ASC";
+  return find_by_sql($sql);
+}
+
+function fetch_media()
+{
+  global $db;
+  $sql = "SELECT * FROM media";
+  return find_by_sql($sql);
+}
+
 /*--------------------------------------------------------------*/
 /* Function for Finding all product name
 /* Request coming from ajax.php for auto suggest

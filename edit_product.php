@@ -1,198 +1,280 @@
 <?php
-$page_title = 'Edit product';
+$page_title = 'Edit Product';
 require_once('includes/load.php');
-// Checkin What level user has permission to view this page
+// Check user permissions
 page_require_level(2);
-?>
-<?php
-$product = find_by_id('products', (int) $_GET['id']);
+
+$product_id = (int) $_GET['id'];
+$product = find_by_id('products', $product_id);
+var_dump($product);
+if (!$product) {
+  $session->msg('d', 'Product not found.');
+  redirect('products.php');
+}
+
 $all_categories = find_all('categories');
 $all_photo = find_all('media');
-if (!$product) {
-  $session->msg("d", "Missing product id.");
-  redirect('product.php');
-}
-?>
-<?php
-if (isset($_POST['product'])) {
-  $req_fields = array('product-title', 'product-categorie', 'product-quantity', 'buying-price', 'saleing-price', 'product-size', 'product-color', 'product-sex');
+$variation = fetch_variations();
+
+if (isset($_POST['edit_product'])) {
+  $req_fields = array(
+    'product-title',
+    'product-categorie',
+    'product-quantity',
+    'buying-price',
+    'saleing-price'
+  );
   validate_fields($req_fields);
 
   if (empty($errors)) {
     $p_name = remove_junk($db->escape($_POST['product-title']));
-    $p_cat = (int) $_POST['product-categorie'];
+    $p_cat = remove_junk($db->escape($_POST['product-categorie']));
     $p_qty = remove_junk($db->escape($_POST['product-quantity']));
+    $p_sex = remove_junk($db->escape($_POST['product-sex']));
     $p_buy = remove_junk($db->escape($_POST['buying-price']));
     $p_sale = remove_junk($db->escape($_POST['saleing-price']));
-    $p_size = remove_junk($db->escape($_POST['product-size']));
-    $p_color = remove_junk($db->escape($_POST['product-color']));
-    $p_sex = remove_junk($db->escape($_POST['product-sex']));
+    $color = remove_junk($db->escape($_POST['color']));
+    $size = "";
 
-    if (is_null($_POST['product-photo']) || $_POST['product-photo'] === "") {
-      $media_id = '0';
+    $cat_name = explode(",", $p_cat);
+
+    if ($cat_name[0] === "SHOES") {
+      $size = remove_junk($db->escape($_POST['sizes']));
+    } else if ($cat_name[0] === "CLOTHES") {
+      $size = remove_junk($db->escape($_POST['size']));
     } else {
-      $media_id = remove_junk($db->escape($_POST['product-photo']));
+      $size = NULL;
     }
 
-    $query = "UPDATE products SET";
-    $query .= " name ='{$p_name}', quantity ='{$p_qty}',";
-    $query .= " buy_price ='{$p_buy}', sale_price ='{$p_sale}', categorie_id ='{$p_cat}', media_id='{$media_id}',";
-    $query .= " size ='{$p_size}', color ='{$p_color}', sex ='{$p_sex}'";
-    $query .= " WHERE id ='{$product['id']}'";
-    $result = $db->query($query);
-    if ($result && $db->affected_rows() === 1) {
-      $session->msg('s', "Product updated ");
-      redirect('product.php', false);
-    } else {
-      $session->msg('d', ' Nothing updated!');
-      redirect('edit_product.php?id=' . $product['id'], false);
+    $media_ids = $product['media_id'] ? explode(",", $product['media_id']) : [];
+    if (!empty($_FILES['product-photos']['name'][0])) {
+      $upload_dir = 'uploads/products/';
+      foreach ($_FILES['product-photos']['name'] as $key => $file_name) {
+        $tmp_name = $_FILES['product-photos']['tmp_name'][$key];
+        $file_type = $_FILES['product-photos']['type'][$key];
+        $target_file = $upload_dir . basename($file_name);
+
+        // Ensure the upload directory exists
+        if (!is_dir($upload_dir)) {
+          mkdir($upload_dir, 0777, true);
+        }
+
+        // Move the uploaded file to the designated directory
+        if (move_uploaded_file($tmp_name, $target_file)) {
+          // Insert into media table
+          $query_media = "INSERT INTO media (file_name, file_type) VALUES ('{$file_name}', '{$file_type}')";
+          if ($db->query($query_media)) {
+            $media_ids[] = $db->insert_id();
+          }
+        }
+      }
     }
 
+    $media_ids_string = empty($media_ids) ? 'NULL' : implode(",", $media_ids);
+
+    $query = "UPDATE products SET name = '{$p_name}', quantity = '{$p_qty}', buy_price = '{$p_buy}', 
+              sale_price = '{$p_sale}', category = '{$cat_name[0]}', category_name = '{$cat_name[1]}', 
+              media_id = '{$media_ids_string}', size = " . ($size ? "'{$size}'" : "NULL") . ", 
+              sex = '{$p_sex}', color = '{$color}' WHERE id = {$product_id}";
+
+    if ($db->query($query)) {
+      $session->msg('s', "Product updated.");
+    } else {
+      $session->msg('d', 'Sorry, failed to update product.');
+    }
   } else {
     $session->msg("d", $errors);
-    redirect('edit_product.php?id=' . $product['id'], false);
+    redirect("edit_product.php?id={$product_id}", false);
   }
-
 }
 ?>
+
 <?php include_once('layouts/header.php'); ?>
+
 <div class="row">
   <div class="col-md-12">
     <?php echo display_msg($msg); ?>
   </div>
 </div>
+
 <div class="row">
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <strong>
-        <span class="glyphicon glyphicon-th"></span>
-        <span>Edit Product</span>
-      </strong>
-    </div>
-    <div class="panel-body">
-      <div class="col-md-7">
-        <form method="post" action="edit_product.php?id=<?php echo (int) $product['id'] ?>">
+  <div class="col-md-12">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <strong>
+          <span class="glyphicon glyphicon-edit"></span>
+          <span>Edit Product</span>
+        </strong>
+      </div>
+      <div class="panel-body">
+        <form method="post" action="edit_product.php?id=<?php echo (int) $product_id; ?>" class="clearfix"
+          enctype="multipart/form-data">
+          <!-- Product Title -->
           <div class="form-group">
+            <label for="product-title">Product Title</label>
             <div class="input-group">
               <span class="input-group-addon">
                 <i class="glyphicon glyphicon-th-large"></i>
               </span>
-              <input type="text" class="form-control" name="product-title"
-                value="<?php echo remove_junk($product['name']); ?>">
+              <input type="text" class="form-control" name="product-title" id="product-title"
+                value="<?php echo $product['name']; ?>" placeholder="Product Title">
             </div>
           </div>
+
+          <!-- Category and Options -->
           <div class="form-group">
             <div class="row">
-              <div class="col-md-6">
-                <select class="form-control" name="product-categorie">
-                  <option value=""> Select a category</option>
+              <div class="col-md-3">
+                <label for="product-categorie">Product Category</label>
+                <select class="form-control" name="product-categorie" id="product-categorie">
+                  <option value="">Select Product Category</option>
+
                   <?php foreach ($all_categories as $cat): ?>
-                    <option value="<?php echo (int) $cat['id']; ?>" <?php if ($product['categorie_id'] === $cat['id']):
-                          echo "selected";
-                        endif; ?>>
-                      <?php echo remove_junk($cat['name']); ?>
+                    <?php
+                    // Create the value for the option
+                    $option_value = $cat['type'] . "," . $cat['name'];
+
+                    // Check if the product's category name is contained in the option value
+                    $is_selected = (strpos($option_value, $product['category_name']) !== false) ? 'selected' : '';
+                    ?>
+                    <option value="<?php echo $option_value; ?>" <?php echo $is_selected; ?>>
+                      <?php echo $cat['name']; ?>
                     </option>
                   <?php endforeach; ?>
+                </select>
+
+              </div>
+
+              <div class="col-md-3" id="any-size">
+                <label for="sizes">Size</label>
+                <input type="number" name="sizes" id="sizes" placeholder="Size" class="form-control size"
+                  value="<?php echo $product['size']; ?>">
+              </div>
+
+              <div class="col-md-3" id="clothe-size">
+                <label for="size">Size</label>
+                <select name="size" class="form-control size">
+                  <option value="">Select Size</option>
+                  <?php
+                  foreach ($variation as $item) {
+                    if ($item['variation'] === 'Sizes') {
+                      $sizes = json_decode($item['sub'], true);
+                      foreach ($sizes as $size) {
+                        $selected = $size === $product['size'] ? 'selected' : '';
+                        echo "<option value=\"{$size}\" {$selected}>{$size}</option>";
+                      }
+                    }
+                  }
+                  ?>
+                </select>
+              </div>
+
+              <div class="col-md-3">
+                <label for="product-photo">Product Photos</label>
+                <input type="file" class="form-control" name="product-photos[]" id="product-photo" accept="image/*"
+                  multiple>
+                <small class="form-text text-muted">Upload at least 3 images.</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Options -->
+          <div class="form-group">
+            <div class="row">
+              <div class="col-md-6">
+                <label for="product-sex">Sex</label>
+                <select class="form-control" name="product-sex" id="product-sex">
+                  <option value="">Select Sex</option>
+                  <option value="Male" <?php echo $product['sex'] === 'Male' ? 'selected' : ''; ?>>Male</option>
+                  <option value="Female" <?php echo $product['sex'] === 'Female' ? 'selected' : ''; ?>>Female</option>
+                  <option value="Unisex" <?php echo $product['sex'] === 'Unisex' ? 'selected' : ''; ?>>Unisex</option>
                 </select>
               </div>
               <div class="col-md-6">
-                <select class="form-control" name="product-photo">
-                  <option value=""> No image</option>
-                  <?php foreach ($all_photo as $photo): ?>
-                    <option value="<?php echo (int) $photo['id']; ?>" <?php if ($product['media_id'] === $photo['id']):
-                          echo "selected";
-                        endif; ?>>
-                      <?php echo $photo['file_name'] ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
+                <?php
+                foreach ($variation as $item) {
+                  if ($item['variation'] === 'Color') {
+                    $colors = json_decode($item['sub'], true);
+                    echo '<label for="color">Color</label>';
+                    echo '<select name="color" id="color" class="form-control">';
+                    foreach ($colors as $color) {
+                      $selected = $color === $product['color'] ? 'selected' : '';
+                      echo "<option value=\"{$color}\" {$selected}>{$color}</option>";
+                    }
+                    echo '</select>';
+                  }
+                }
+                ?>
               </div>
             </div>
           </div>
 
+          <!-- Pricing and Quantity -->
           <div class="form-group">
             <div class="row">
               <div class="col-md-4">
-                <div class="form-group">
-                  <label for="qty">Quantity</label>
-                  <div class="input-group">
-                    <span class="input-group-addon">
-                      <i class="glyphicon glyphicon-shopping-cart"></i>
-                    </span>
-                    <input type="number" class="form-control" name="product-quantity"
-                      value="<?php echo remove_junk($product['quantity']); ?>">
-                  </div>
+                <label for="product-quantity">Product Quantity</label>
+                <div class="input-group">
+                  <span class="input-group-addon">
+                    <i class="glyphicon glyphicon-shopping-cart"></i>
+                  </span>
+                  <input type="number" class="form-control" name="product-quantity" id="product-quantity"
+                    value="<?php echo $product['quantity']; ?>" placeholder="Product Quantity">
                 </div>
               </div>
+
               <div class="col-md-4">
-                <div class="form-group">
-                  <label for="qty">Buying price</label>
-                  <div class="input-group">
-                    <span class="input-group-addon">
-                      <i class="glyphicon glyphicon-peso">₱</i>
-                    </span>
-                    <input type="number" class="form-control" name="buying-price"
-                      value="<?php echo remove_junk($product['buy_price']); ?>">
-                    <span class="input-group-addon">.00</span>
-                  </div>
+                <label for="buying-price">Buying Price</label>
+                <div class="input-group">
+                  <span class="input-group-addon">
+                    <i class="glyphicon glyphicon-peso">₱</i>
+                  </span>
+                  <input type="number" class="form-control" name="buying-price" id="buying-price"
+                    value="<?php echo $product['buy_price']; ?>" placeholder="Buying Price">
+                  <span class="input-group-addon">.00</span>
                 </div>
               </div>
+
               <div class="col-md-4">
-                <div class="form-group">
-                  <label for="qty">Selling price</label>
-                  <div class="input-group">
-                    <span class="input-group-addon">
-                      <i class="glyphicon glyphicon-peso">₱</i>
-                    </span>
-                    <input type="number" class="form-control" name="saleing-price"
-                      value="<?php echo remove_junk($product['sale_price']); ?>">
-                    <span class="input-group-addon">.00</span>
-                  </div>
+                <label for="saleing-price">Selling Price</label>
+                <div class="input-group">
+                  <span class="input-group-addon">
+                    <i class="glyphicon glyphicon-peso">₱</i>
+                  </span>
+                  <input type="number" class="form-control" name="saleing-price" id="saleing-price"
+                    value="<?php echo $product['sale_price']; ?>" placeholder="Selling Price">
+                  <span class="input-group-addon">.00</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="form-group">
-            <div class="row">
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="size">Size</label>
-                  <div class="input-group">
-                    <input type="text" class="form-control" name="product-size"
-                      value="<?php echo remove_junk($product['size']); ?>">
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="color">Color</label>
-                  <div class="input-group">
-                    <input type="text" class="form-control" name="product-color"
-                      value="<?php echo remove_junk($product['color']); ?>">
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="sex">Sex</label>
-                  <div class="input-group">
-                    <select class="form-control" name="product-sex" id="product-sex" style="width: 140px;">
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Unisex">Unisex</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" name="product" class="btn btn-danger">Update</button>
+          <!-- Submit Button -->
+          <button type="submit" name="edit_product" class="btn btn-danger">Update Product</button>
         </form>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+  $(document).ready(function () {
+    $("#any-size").hide();
+    $("#clothe-size").hide();
+    $("#product-categorie").change(function () {
+      let type = $(this).val();
+      if (type.split(",")[0] === "SHOES") {
+        $("#any-size").show();
+        $("#clothe-size").hide();
+      } else if (type.split(",")[0] === "CLOTHES") {
+        $("#any-size").hide();
+        $("#clothe-size").show();
+      } else {
+        $("#any-size").hide();
+        $("#clothe-size").hide();
+      }
+    });
+  });
+</script>
 
 <?php include_once('layouts/footer.php'); ?>

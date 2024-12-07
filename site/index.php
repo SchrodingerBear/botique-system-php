@@ -10,6 +10,13 @@ $distProduct = getAllProducts();
 $getImage = "";
 
 $uniqueData = array();
+function fetch_media()
+{
+	global $db;
+	$sql = "SELECT * FROM media";
+	return find_by_sql($sql);
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -983,53 +990,52 @@ $uniqueData = array();
 									<div class="wrap-slick3-arrows flex-sb-m flex-w"></div>
 
 									<div class="slick3 gallery-lb">
-										<div class="item-slick3"
-											data-thumb="../uploads/products/<?php echo $items['image']; ?>">
-											<div class="wrap-pic-w pos-relative">
-												<?php if ($items['media_id'] === '0'): ?>
-													<img src="../uploads/products/no_image.jpg" alt="">
-												<?php else: ?>
-													<img src="../uploads/products/<?php echo $items['image']; ?>" alt="">
-												<?php endif; ?>
+										<?php
+										$media = fetch_media(); // Fetch the array of media data
+										$mediaIdString = $items['media_id'] ?? ''; // Default to empty string if null
+										$mediaIds = $mediaIdString !== '' ? explode(',', $mediaIdString) : []; // Split the media IDs
+									
+										$imageFound = false; // Flag to track if at least one image is found
+									
+										foreach ($mediaIds as $mediaId):
+											foreach ($media as $item):
+												if ((string) $item['id'] === (string) $mediaId): // Match the media ID
+													// Ensure no extra spaces before or after the file name
+													$filePath = "../uploads/products/" . urlencode(trim($item['file_name']));
 
+													// Debug the $filePath to ensure no unwanted spaces
+													// var_dump($filePath); // Uncomment for debugging
+									
+													?>
+													<div class="item-slick3" data-thumb="<?php echo $filePath; ?>">
+														<div class="wrap-pic-w pos-relative">
+															<img src="<?php echo $filePath; ?>" alt="">
+															<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04"
+																href="<?php echo $filePath; ?>">
+																<i class="fa fa-expand"></i>
+															</a>
+														</div>
+													</div>
+													<?php
+													$imageFound = true;
+													break; // Exit inner loop once the image is found
+												endif;
+											endforeach;
+										endforeach;
 
-												<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04"
-													href="images/product-detail-01.jpg">
-													<i class="fa fa-expand"></i>
-												</a>
+										// If no images found, display the default "no image" placeholder
+										if (!$imageFound): ?>
+											<div class="item-slick3" data-thumb="uploads/products/no_image.jpg">
+												<div class="wrap-pic-w pos-relative">
+													<img src="uploads/products/no_image.jpg" alt="">
+													<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04"
+														href="uploads/products/no_image.jpg">
+														<i class="fa fa-expand"></i>
+													</a>
+												</div>
 											</div>
-										</div>
+										<?php endif; ?>
 
-										<div class="item-slick3"
-											data-thumb="../uploads/products/<?php echo $items['image']; ?>">
-											<div class="wrap-pic-w pos-relative">
-												<?php if ($items['media_id'] === '0'): ?>
-													<img src="../uploads/products/no_image.jpg" alt="">
-												<?php else: ?>
-													<img src="../uploads/products/<?php echo $items['image']; ?>" alt="">
-												<?php endif; ?>
-
-												<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04"
-													href="images/product-detail-02.jpg">
-													<i class="fa fa-expand"></i>
-												</a>
-											</div>
-										</div>
-
-										<div class="item-slick3"
-											data-thumb="../uploads/products/<?php echo $items['image']; ?>">
-											<div class="wrap-pic-w pos-relative">
-												<?php if ($items['media_id'] === '0'): ?>
-													<img src="../uploads/products/no_image.jpg" alt="">
-												<?php else: ?>
-													<img src="../uploads/products/<?php echo $items['image']; ?>" alt="">
-												<?php endif; ?>
-												<a class="flex-c-m size-108 how-pos1 bor0 fs-16 cl10 bg0 hov-btn3 trans-04"
-													href="images/product-detail-03.jpg">
-													<i class="fa fa-expand"></i>
-												</a>
-											</div>
-										</div>
 									</div>
 								</div>
 							</div>
@@ -1323,15 +1329,19 @@ $uniqueData = array();
 					}
 
 					// Create the data object to send
-					const formData = {
+					const userId = <?php echo isset($user['id']) ? $user['id'] : 'null'; ?>;
+					if (userId === null) {
+						alert("Login First!");
+						window.location.href = 'login_v2.php';
+					} const formData = {
 						image_id: $(`.image_id<?php echo $item['id']; ?>`).val(),
 						name: $(`.name_text<?php echo $item['id']; ?>`).text(),
 						price: $(`.price_text<?php echo $item['id']; ?>`).text(),
 						color: color,
 						size: size,
 						quantity: $(`.quantity_text<?php echo $item['id']; ?>`).val(),
-						userName: $(`.username<?php echo $user['id']; ?>`).val(),
-						user_id: $(`.user_id<?php echo $user['id']; ?>`).val()
+						userName: $(`.username${userId}`).val(), // Use the userId in the class name correctly
+						user_id: $(`.user_id${userId}`).val() // Same for user_id
 					};
 
 					console.log(formData);
@@ -1349,11 +1359,14 @@ $uniqueData = array();
 							console.log('Response from PHP:', data);
 							if (data.msg === "success") {
 								swal(formData.name, "is added to cart!", "success");
+							} else if (data.error === "No item with that variation available. Please select different variation.") {
+								swal("Error", data.error, "error"); // Show the specific error message
 							} else {
 								swal(formData.name, "failed to add to cart!", "error");
 							}
 						})
 						.catch(error => console.error('Error:', error));
+
 				});
 			});
 		</script>

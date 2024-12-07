@@ -39,12 +39,31 @@ $products = join_product_table();
                             <tr>
                                 <td class="text-center"><?php echo count_id(); ?></td>
                                 <td>
-                                    <?php if ($product['media_id'] === '0'): ?>
+                                    <?php
+                                    $media = fetch_media(); // This will return the array of media data
+                                    $mediaIdString = $product['media_id'] ?? ''; // Default to empty string if null
+                                
+                                    // Only call explode if the media_id is not empty
+                                    $mediaIds = $mediaIdString !== '' ? explode(',', $mediaIdString) : [];
+
+                                    $imageFound = false; // Flag to track if at least one image is found
+                                    foreach ($mediaIds as $mediaId) {
+                                        foreach ($media as $item) {
+                                            if ((string) $item['id'] === (string) $mediaId) { // Ensure type matching
+                                                $filePath = "uploads/products/" . $item['file_name'];
+                                                ?>
+                                                <img class="img-avatar img-rectangel" src="<?php echo $filePath; ?>" alt="">
+                                                <?php
+                                                $imageFound = true;
+                                                // No break here since we want to display all matching images
+                                                break; // Break the inner loop to move to the next mediaId
+                                            }
+                                        }
+                                    }
+                                    if (!$imageFound): ?>
                                         <img class="img-avatar img-rectangel" src="uploads/products/no_image.jpg" alt="">
-                                    <?php else: ?>
-                                        <img class="img-avatar img-rectangel"
-                                            src="uploads/products/<?php echo $product['image']; ?>" alt="">
                                     <?php endif; ?>
+
                                 </td>
                                 <td><?php echo remove_junk($product['name']); ?></td>
                                 <td class="text-center"><?php echo remove_junk($product['category_name']); ?></td>

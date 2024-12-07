@@ -55,7 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$date = date('Y-m-d H:i:s'); // Current timestamp
 
 		// Debugging: Log each cart item details
-		echo "Processing product: " . $prod['name'] . " with quantity: {$quantity}, price: {$price}, color: {$color}, size: {$size}<br>";
+		// echo "Processing product: " . $prod['name'] . " with quantity: {$quantity}, price: {$price}, color: {$color}, size: {$size}<br>";
+
 
 		// Find the product ID from the products table based on name, size, and color
 		$productQuery = "
