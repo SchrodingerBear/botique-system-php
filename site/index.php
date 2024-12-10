@@ -751,10 +751,12 @@ function fetch_media()
 							<div class="block2-pic hov-img0">
 
 								<?php 								// return print_r($dat);
-									if ($product['media_id'] === '0'): ?>
-									<img src="../uploads/products/no_image.jpg" alt="">
+									if ($product['media_id'] === Null): ?>
+									<img src="https://via.placeholder.com/250" alt="Placeholder Image">
+
 								<?php else: ?>
-									<img src="../uploads/products/<?php echo $product['image']; ?>" alt="">
+									<img style="width: 250px; height: 250px"
+										src="../uploads/products/<?php echo $product['image']; ?>" alt="">
 								<?php endif; ?>
 								<a href="#"
 									class="block2-btn flex-c-m stext-103 cl2 size-102 bg0 bor2 hov-btn1 p-lr-15 trans-04 js-show-modal m<?php echo $product['id']; ?>">
